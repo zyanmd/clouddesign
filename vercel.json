@@ -8,21 +8,8 @@
   ],
   "routes": [
     {
-      "src": "/upload",
-      "dest": "server.js"
-    },
-    {
-      "src": "/",
-      "dest": "server.js"
-    },
-    {
-      "src": "/(.+)",
+      "src": "/(.*)",
       "dest": "server.js"
     }
-  ],
-  "functions": {
-    "server.js": {
-      "memory": 1024
-    }
-  }
+  ]
 }
