@@ -9,36 +9,23 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const uploadFile = require('cloudku-uploader');
-const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Set up storage for multer
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  }
-});
-
+// multer memory storage (no file system usage)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Serve static files
+// serve static files
 app.use(express.static('public'));
 
-// Serve the main HTML page
+// serve main HTML
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
-// Handle file uploads
+// handle upload
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file && !req.body.text) {
@@ -51,11 +38,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     let fileBuffer, fileName;
 
     if (req.file) {
-      const filePath = req.file.path;
-      fileBuffer = fs.readFileSync(filePath);
+      fileBuffer = req.file.buffer;
       fileName = req.file.originalname;
-
-      fs.unlinkSync(filePath);
     } else {
       fileBuffer = Buffer.from(req.body.text, 'utf-8');
       fileName = 'upload.txt';
@@ -86,10 +70,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// Export app for vercel
+// export app for vercel
 module.exports = app;
 
-// local dev only
+// for local dev
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
