@@ -1,27 +1,25 @@
-// ──────────────────────────────────────────
-// 🌩️ CloudKuImages Uploader Web Application
-// 📦 Based on cloudku-uploader
-// Vercel-compatible version
-// ──────────────────────────────────────────
+/*
+──────────────────────────────────────────
+🌩️ CloudKuImages Uploader Web Application
+📦 Based on cloudku-uploader
+──────────────────────────────────────────
+*/
 
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const uploadFile = require('cloudku-uploader');
 const fs = require('fs');
-const serverless = require('serverless-http');
 
 const app = express();
+const port = process.env.PORT || 3000;
 
-// middleware for static files (vercel only serves api, so serve via frontend if needed)
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
-// multer storage setup (save to tmp dir on vercel)
+// Set up storage for multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = '/tmp/uploads';
+    const uploadDir = path.join(__dirname, 'uploads');
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+      fs.mkdirSync(uploadDir);
     }
     cb(null, uploadDir);
   },
@@ -32,13 +30,21 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// upload endpoint
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+// Serve static files
+app.use(express.static('public'));
+
+// Serve the main HTML page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
+
+// Handle file uploads
+app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file && !req.body.text) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'No file or text provided' 
+      return res.status(400).json({
+        status: 'error',
+        message: 'No file or text provided'
       });
     }
 
@@ -49,7 +55,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       fileBuffer = fs.readFileSync(filePath);
       fileName = req.file.originalname;
 
-      // cleanup (optional on vercel, but good practice)
       fs.unlinkSync(filePath);
     } else {
       fileBuffer = Buffer.from(req.body.text, 'utf-8');
@@ -81,6 +86,12 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// export handler
+// Export app for vercel
 module.exports = app;
-module.exports.handler = serverless(app);
+
+// local dev only
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+}
