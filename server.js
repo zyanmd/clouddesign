@@ -90,4 +90,4 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-module.exports = app
+module.exports = app;
