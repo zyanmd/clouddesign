@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudKuImages Uploader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles */
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+        }
+        
+        .dark {
+            --primary-color: #60a5fa;
+            --primary-hover: #3b82f6;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 5s ease infinite;
+            background-size: 200% 200%;
+        }
+        
+        .dark .logo-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        @keyframes gradient {
+            0% {background-position: 0% 50%}
+            50% {background-position: 100% 50%}
+            100% {background-position: 0% 50%}
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(10px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+        
+        .animate-spin-slow {
+            animation: spin 3s linear infinite;
+        }
+        
+        @keyframes spin {
+            from {transform: rotate(0deg);}
+            to {transform: rotate(360deg);}
+        }
+        
+        /* Page loader */
+        #pageLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
+        }
+        
+        .dark #pageLoader {
+            background-color: rgba(15, 23, 42, 0.9);
+        }
+        
+        /* WhatsApp popup */
+        #whatsappPopup {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            transition: all 0.3s ease;
+            transform: translateY(20px);
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        #whatsappPopup.show {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Theme toggle button animation */
+        .theme-toggle-icon {
+            transition: transform 0.5s ease;
+        }
+        
+        .theme-toggle:hover .theme-toggle-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif'],
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen dark:bg-slate-900 dark:text-gray-100">
+    <!-- Page Loader -->
+    <div id="pageLoader">
+        <div class="text-center">
+            <div class="inline-block animate-spin-slow mb-4">
+                <svg class="w-16 h-16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 4.75V6.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M17.1266 6.87347L16.0659 7.93413" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M19.25 12L17.75 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M17.1266 17.1265L16.0659 16.0659" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M12 19.25V17.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M7.9342 16.0659L6.87354 17.1265" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M6.25 12L4.75 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M7.9342 7.93413L6.87354 6.87347" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </div>
+            <p class="text-lg font-medium">Loading CloudKuImages...</p>
+        </div>
+    </div>
+
+    <!-- WhatsApp Popup -->
+    <div id="whatsappPopup" class="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 max-w-xs">
+        <div class="flex justify-between items-start mb-3">
+            <div class="flex items-center">
+                <i class="fab fa-whatsapp text-green-500 text-xl mr-2"></i>
+                <h3 class="font-semibold">Join Our Community</h3>
+            </div>
+            <button id="closePopupBtn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <p class="text-sm">Join our WhatsApp group for updates and support:</p>
+            <a href="https://chat.whatsapp.com/HlK7qcBWVYqAyMuA6pFp9o" target="_blank" class="block bg-green-500 text-white text-center py-2 px-4 rounded hover:bg-green-600 transition duration-200">
+                <i class="fab fa-whatsapp mr-2"></i>Join Group Chat
+            </a>
+            <p class="text-sm mt-2">Or follow our channel:</p>
+            <a href="https://whatsapp.com/channel/0029VaCujsqGZNCy4ZlDiS0N" target="_blank" class="block bg-green-500 text-white text-center py-2 px-4 rounded hover:bg-green-600 transition duration-200">
+                <i class="fas fa-bullhorn mr-2"></i>Follow Channel
+            </a>
+        </div>
+    </div>
+<!-- Notification System -->
+<div id="notificationSystem" class="fixed top-4 right-4 z-50 max-w-sm">
+    <!-- Upload Started Notification Template -->
+    <div id="uploadStartedNotification" class="hidden notification bg-blue-100 dark:bg-blue-900 border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 p-4 rounded shadow-md mb-3 transform transition-all duration-300 opacity-0 translate-x-8">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">Upload Started</p>
+                <p class="text-xs mt-1">Your file is being uploaded...</p>
+            </div>
+            <button class="ml-auto close-notification text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Upload Complete Notification Template -->
+    <div id="uploadCompleteNotification" class="hidden notification bg-green-100 dark:bg-green-900 border-l-4 border-green-500 text-green-700 dark:text-green-300 p-4 rounded shadow-md mb-3 transform transition-all duration-300 opacity-0 translate-x-8">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-check-circle mr-2"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">Upload Complete</p>
+                <p class="text-xs mt-1">Your file has been successfully uploaded!</p>
+            </div>
+            <button class="ml-auto close-notification text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Upload Error Notification Template -->
+    <div id="uploadErrorNotification" class="hidden notification bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 rounded shadow-md mb-3 transform transition-all duration-300 opacity-0 translate-x-8">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">Upload Failed</p>
+                <p class="text-xs mt-1" id="errorNotificationMessage">Something went wrong with your upload.</p>
+            </div>
+            <button class="ml-auto close-notification text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+    <div class="container mx-auto px-4 py-8 animate-fade-in">
+        <header class="text-center mb-8 relative">
+            <!-- Theme Toggle Button -->
+            <button id="themeToggleBtn" class="theme-toggle absolute right-4 top-0 p-2 rounded-full bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 transition-all duration-300">
+                <span class="theme-toggle-icon block">
+                    <i class="fas fa-moon dark:hidden"></i>
+                    <i class="fas fa-sun hidden dark:block"></i>
+                </span>
+            </button>
+            
+            <div class="flex justify-center mb-4">
+                <h1 class="logo-text text-4xl md:text-5xl">CloudKuImages</h1>
+            </div>
+            <h2 class="text-2xl font-bold text-blue-600 dark:text-blue-400">File Uploader</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Upload your files and get shareable links instantly</p>
+        </header>
+
+        <div class="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 transition-all duration-300">
+            <div class="mb-6">
+                <div class="flex justify-center items-center">
+                    <div class="w-full">
+                        <div class="tabs flex border-b mb-4 dark:border-gray-700">
+                            <button id="fileTabBtn" class="tab-btn py-2 px-4 font-medium text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400">
+                                <i class="fas fa-file mr-2"></i>File Upload
+                            </button>
+                            <button id="textTabBtn" class="tab-btn py-2 px-4 font-medium text-gray-500 dark:text-gray-400">
+                                <i class="fas fa-font mr-2"></i>Text Upload
+                            </button>
+                        </div>
+
+                        <!-- File Upload Tab -->
+                        <div id="fileTab" class="tab-content">
+                            <form id="fileUploadForm" class="space-y-4">
+                                <div class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center transition-all duration-200" id="dropArea">
+                                    <input type="file" id="fileInput" class="hidden">
+                                    <label for="fileInput" class="cursor-pointer">
+                                        <i class="fas fa-cloud-upload-alt text-4xl text-blue-500 dark:text-blue-400 mb-2"></i>
+                                        <p class="text-gray-700 dark:text-gray-300">Drag and drop your file here or <span class="text-blue-500 dark:text-blue-400">browse</span></p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Max file size: 100MB</p>
+                                    </label>
+                                    <div id="filePreview" class="hidden mt-4 text-left">
+                                        <div class="flex items-center p-2 bg-gray-100 dark:bg-slate-700 rounded">
+                                            <i class="fas fa-file text-blue-500 dark:text-blue-400 mr-2"></i>
+                                            <span id="fileName" class="text-sm text-gray-700 dark:text-gray-300 truncate flex-1"></span>
+                                            <button type="button" id="removeFile" class="text-red-500 dark:text-red-400">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" id="uploadFileBtn" class="w-full py-2 px-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition duration-200">
+                                    <i class="fas fa-upload mr-2"></i>Upload File
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Text Upload Tab -->
+                        <div id="textTab" class="tab-content hidden">
+                            <form id="textUploadForm" class="space-y-4">
+                                <div>
+                                    <textarea id="textInput" rows="6" class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-gray-100" placeholder="Enter your text here..."></textarea>
+                                </div>
+                                <button type="submit" id="uploadTextBtn" class="w-full py-2 px-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition duration-200">
+                                    <i class="fas fa-upload mr-2"></i>Upload Text
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="hidden">
+                <div class="flex justify-center items-center space-x-2 my-4">
+                    <div class="w-4 h-4 bg-blue-600 dark:bg-blue-500 rounded-full animate-pulse"></div>
+                    <div class="w-4 h-4 bg-blue-600 dark:bg-blue-500 rounded-full animate-pulse delay-75"></div>
+                    <div class="w-4 h-4 bg-blue-600 dark:bg-blue-500 rounded-full animate-pulse delay-150"></div>
+                </div>
+                <p class="text-center text-gray-600 dark:text-gray-400">Uploading to CloudKuImages...</p>
+            </div>
+
+            <!-- Result Section -->
+            <div id="resultSection" class="hidden mt-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-green-600 dark:text-green-400 mb-2">
+                            <i class="fas fa-check-circle mr-2"></i>Upload Success
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="flex">
+                                <span class="text-gray-600 dark:text-gray-400 w-16">File:</span>
+                                <span id="result-filename" class="text-gray-800 dark:text-gray-200 font-medium"></span>
+                            </div>
+                            <div class="flex">
+                                <span class="text-gray-600 dark:text-gray-400 w-16">Size:</span>
+                                <span id="result-size" class="text-gray-800 dark:text-gray-200"></span>
+                            </div>
+                            <div class="flex">
+                                <span class="text-gray-600 dark:text-gray-400 w-16">Type:</span>
+                                <span id="result-type" class="text-gray-800 dark:text-gray-200"></span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-gray-600 dark:text-gray-400 w-16">URL:</span>
+                                <div class="flex-1">
+                                    <div class="flex">
+                                        <input id="result-url" type="text" readonly class="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-slate-800 dark:text-gray-200 rounded-l-lg focus:outline-none">
+                                        <button id="copyUrlBtn" class="bg-blue-600 dark:bg-blue-500 text-white px-3 py-2 rounded-r-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition duration-200">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <a id="result-info" href="#" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">
+                                <i class="fas fa-info-circle mr-1"></i>More Information
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Section -->
+            <div id="errorSection" class="hidden mt-6 p-4 border border-red-200 dark:border-red-900/50 rounded-lg bg-red-50 dark:bg-red-900/20">
+                <h3 class="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">
+                    <i class="fas fa-exclamation-circle mr-2"></i>Upload Failed
+                </h3>
+                <p id="errorMessage" class="text-red-700 dark:text-red-400"></p>
+            </div>
+        </div>
+        
+<!-- Information Box - Add this after the header and before the main upload container -->
+<div class="max-w-2xl mx-auto my-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 animate-fade-in shadow-md">
+    <div class="flex items-start">
+        <div class="flex-shrink-0 pt-0.5">
+            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-xl"></i>
+        </div>
+        <div class="ml-4">
+            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300">About CloudKuImages</h3>
+            <div class="mt-3 text-sm text-blue-700 dark:text-blue-200">
+                <p>CloudKuImages is a free image and file hosting service that allows you to:</p>
+                <ul class="list-disc list-inside mt-2 space-y-2 ml-3">
+                    <li>Upload files up to 100MB</li>
+                    <li>Share images and files with direct links</li>
+                    <li>Store text snippets securely</li>
+                    <li>Access your uploads from anywhere</li>
+                </ul>
+                <p class="mt-3">Files are stored securely and will be available for at least 30 days.</p>
+            </div>
+            <div class="mt-4">
+                <a href="https://cloudkuimages.guru/about" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                    Learn more <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <footer class="mt-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+            <p>Powered by CloudKuImages Uploader</p>
+            <p class="mt-1">
+                <a href="https://cloudkuimages.guru/ch" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">
+                    <i class="fas fa-external-link-alt mr-1"></i>Visit CloudKuImages
+                </a>
+            </p>
+            <p class="mt-3 text-xs">Developed with ❤️ by Han</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    // Page loader
+    const pageLoader = document.getElementById('pageLoader');
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            pageLoader.style.opacity = '0';
+            setTimeout(function() {
+                pageLoader.style.display = 'none';
+            }, 500);
+        }, 1000);
+    });
+    
+    // WhatsApp popup
+    const whatsappPopup = document.getElementById('whatsappPopup');
+    const closePopupBtn = document.getElementById('closePopupBtn');
+    
+    setTimeout(function() {
+        whatsappPopup.classList.add('show');
+    }, 3000);
+    
+    closePopupBtn.addEventListener('click', function() {
+        whatsappPopup.classList.remove('show');
+    });
+    
+    // Dark/Light mode toggle
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const htmlElement = document.documentElement;
+    
+    // Check for saved theme preference or use system preference
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Set initial theme
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        htmlElement.classList.add('dark');
+        updateThemeToggleButton(true);
+    } else {
+        htmlElement.classList.remove('dark');
+        updateThemeToggleButton(false);
+    }
+    
+    // Theme toggle button click handler
+    themeToggleBtn.addEventListener('click', () => {
+        const isDarkMode = htmlElement.classList.toggle('dark');
+        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        updateThemeToggleButton(isDarkMode);
+    });
+    
+    // Update theme toggle button appearance
+    function updateThemeToggleButton(isDarkMode) {
+        if (isDarkMode) {
+            themeToggleBtn.setAttribute('title', 'Switch to light mode');
+        } else {
+            themeToggleBtn.setAttribute('title', 'Switch to dark mode');
+        }
+    }
+
+    // Tab switching with animation
+    const fileTabBtn = document.getElementById('fileTabBtn');
+    const textTabBtn = document.getElementById('textTabBtn');
+    const fileTab = document.getElementById('fileTab');
+    const textTab = document.getElementById('textTab');
+
+    fileTabBtn.addEventListener('click', () => {
+        fileTab.classList.remove('hidden');
+        textTab.classList.add('hidden');
+        fileTabBtn.classList.add('text-blue-600', 'dark:text-blue-400', 'border-b-2', 'border-blue-600', 'dark:border-blue-400');
+        fileTabBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+        textTabBtn.classList.remove('text-blue-600', 'dark:text-blue-400', 'border-b-2', 'border-blue-600', 'dark:border-blue-400');
+        textTabBtn.classList.add('text-gray-500', 'dark:text-gray-400');
+        
+        // Add animation
+        fileTab.classList.add('animate-fade-in');
+        setTimeout(() => {
+            fileTab.classList.remove('animate-fade-in');
+        }, 500);
+    });
+
+    textTabBtn.addEventListener('click', () => {
+        fileTab.classList.add('hidden');
+        textTab.classList.remove('hidden');
+        textTabBtn.classList.add('text-blue-600', 'dark:text-blue-400', 'border-b-2', 'border-blue-600', 'dark:border-blue-400');
+        textTabBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+        fileTabBtn.classList.remove('text-blue-600', 'dark:text-blue-400', 'border-b-2', 'border-blue-600', 'dark:border-blue-400');
+        fileTabBtn.classList.add('text-gray-500', 'dark:text-gray-400');
+        
+        // Add animation
+        textTab.classList.add('animate-fade-in');
+        setTimeout(() => {
+            textTab.classList.remove('animate-fade-in');
+        }, 500);
+    });
+
+    // File upload handling
+    const fileInput = document.getElementById('fileInput');
+    const dropArea = document.getElementById('dropArea');
+    const filePreview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const removeFile = document.getElementById('removeFile');
+    const fileUploadForm = document.getElementById('fileUploadForm');
+
+    // Drag and drop functionality
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+        dropArea.classList.add('border-blue-500');
+        // Different highlight color for dark mode
+        if (htmlElement.classList.contains('dark')) {
+            dropArea.classList.add('bg-blue-900/20');
+        } else {
+            dropArea.classList.add('bg-blue-50');
+        }
+    }
+
+    function unhighlight() {
+        dropArea.classList.remove('border-blue-500', 'bg-blue-50', 'bg-blue-900/20');
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length) {
+            fileInput.files = files;
+            updateFilePreview();
+        }
+    }
+
+    fileInput.addEventListener('change', updateFilePreview);
+
+    function updateFilePreview() {
+        if (fileInput.files.length) {
+            const file = fileInput.files[0];
+            fileName.textContent = file.name;
+            filePreview.classList.remove('hidden');
+            filePreview.classList.add('animate-fade-in');
+            setTimeout(() => {
+                filePreview.classList.remove('animate-fade-in');
+            }, 500);
+        } else {
+            filePreview.classList.add('hidden');
+        }
+    }
+
+    removeFile.addEventListener('click', () => {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+    });
+
+    // Form submissions
+    const textUploadForm = document.getElementById('textUploadForm');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const resultSection = document.getElementById('resultSection');
+    const errorSection = document.getElementById('errorSection');
+
+    fileUploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!fileInput.files.length) {
+            showError('Please select a file to upload');
+            showNotification('error', 'Please select a file to upload');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        // Show upload started notification
+        showNotification('start');
+        
+        await uploadContent(formData);
+    });
+
+    textUploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const textInput = document.getElementById('textInput');
+        if (!textInput.value.trim()) {
+            showError('Please enter some text to upload');
+            showNotification('error', 'Please enter some text to upload');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('text', textInput.value);
+        
+        // Show upload started notification
+        showNotification('start');
+        
+        await uploadContent(formData);
+    });
+
+    async function uploadContent(formData) {
+        // Show loading indicator
+        loadingIndicator.classList.remove('hidden');
+        loadingIndicator.classList.add('animate-fade-in');
+        resultSection.classList.add('hidden');
+        errorSection.classList.add('hidden');
+        
+        try {
+            // Simulate a delay for demo purposes
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.status === 'success') {
+                displayResult(data);
+                showNotification('complete');
+            } else {
+                showError(data.message || 'Upload failed');
+                showNotification('error', data.message || 'Upload failed');
+            }
+        } catch (error) {
+            showError('An error occurred during upload');
+            showNotification('error', 'An error occurred during upload');
+            console.error(error);
+        } finally {
+            loadingIndicator.classList.add('hidden');
+            loadingIndicator.classList.remove('animate-fade-in');
+        }
+    }
+
+    function displayResult(data) {
+        const result = data.result;
+        
+        document.getElementById('result-filename').textContent = result.filename;
+        document.getElementById('result-size').textContent = result.size;
+        document.getElementById('result-type').textContent = result.type;
+        
+        const urlInput = document.getElementById('result-url');
+        urlInput.value = result.url;
+        
+        const infoLink = document.getElementById('result-info');
+        infoLink.href = data.information || 'https://cloudkuimages.guru/ch';
+        
+        resultSection.classList.remove('hidden');
+        resultSection.classList.add('animate-fade-in');
+        setTimeout(() => {
+            resultSection.classList.remove('animate-fade-in');
+        }, 500);
+        
+        // Reset forms
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+        document.getElementById('textInput').value = '';
+    }
+
+    function showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        errorSection.classList.remove('hidden');
+        errorSection.classList.add('animate-fade-in');
+        setTimeout(() => {
+            errorSection.classList.remove('animate-fade-in');
+        }, 500);
+    }
+
+    // Copy URL button
+    const copyUrlBtn = document.getElementById('copyUrlBtn');
+    copyUrlBtn.addEventListener('click', () => {
+        const urlInput = document.getElementById('result-url');
+        urlInput.select();
+        document.execCommand('copy');
+        
+        // Show notification for copy
+        showNotification('complete', 'URL copied to clipboard!');
+        
+        // Show copied tooltip
+        const originalText = copyUrlBtn.innerHTML;
+        copyUrlBtn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+            copyUrlBtn.innerHTML = originalText;
+        }, 2000);
+    });
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!localStorage.getItem('theme')) {
+            if (e.matches) {
+                htmlElement.classList.add('dark');
+                updateThemeToggleButton(true);
+            } else {
+                htmlElement.classList.remove('dark');
+                updateThemeToggleButton(false);
+            }
+        }
+    });
+    
+    // Notification System
+    function showNotification(type, message = null) {
+        const notificationId = type === 'start' ? 'uploadStartedNotification' : 
+                              type === 'complete' ? 'uploadCompleteNotification' : 
+                              'uploadErrorNotification';
+        
+        const notification = document.getElementById(notificationId);
+        
+        // Set custom error message if provided
+        if (type === 'error' && message && notification.querySelector('#errorNotificationMessage')) {
+            notification.querySelector('#errorNotificationMessage').textContent = message;
+        }
+        
+        // Show notification
+        notification.classList.remove('hidden');
+        setTimeout(() => {
+            notification.classList.remove('opacity-0', 'translate-x-8');
+        }, 10);
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            hideNotification(notification);
+        }, 5000);
+        
+        // Add close button event listener
+        const closeBtn = notification.querySelector('.close-notification');
+        if (closeBtn) {
+            // Remove existing event listeners to prevent duplicates
+            const newCloseBtn = closeBtn.cloneNode(true);
+            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+            
+            newCloseBtn.addEventListener('click', function() {
+                hideNotification(notification);
+            });
+        }
+    }
+
+    function hideNotification(notification) {
+        notification.classList.add('opacity-0', 'translate-x-8');
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 300);
+    }
+
+    // Add event listeners for notification close buttons
+    document.querySelectorAll('.close-notification').forEach(button => {
+        button.addEventListener('click', function() {
+            const notification = this.closest('.notification');
+            hideNotification(notification);
+        });
+    });
+});
+
+    </script>
+</body>
+</html>
