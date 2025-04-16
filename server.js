@@ -8,26 +8,13 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const uploadFile = require('cloudku-uploader'); // Changed import style
+const uploadFile = require('cloudku-uploader');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 3000;
 
-// Set up storage for multer
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  }
-});
-
+// Use memory storage instead of disk storage for serverless environment
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Serve static files
@@ -51,13 +38,9 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     let fileBuffer, fileName;
 
     if (req.file) {
-      // Handle file upload
-      const filePath = req.file.path;
-      fileBuffer = fs.readFileSync(filePath);
+      // With memory storage, the file is already in buffer
+      fileBuffer = req.file.buffer;
       fileName = req.file.originalname;
-      
-      // Clean up the temporary file
-      fs.unlinkSync(filePath);
     } else {
       // Handle text upload
       fileBuffer = Buffer.from(req.body.text, 'utf-8');
@@ -90,4 +73,13 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// Start the server only if running directly (not when imported)
+if (require.main === module) {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+}
+
+// Export the Express app for serverless deployment
 module.exports = app;
