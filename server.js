@@ -1,85 +1,81 @@
-/*
-──────────────────────────────────────────
-🌩️ CloudKuImages Uploader Web Application
-📦 Based on cloudku-uploader
-──────────────────────────────────────────
-*/
-
-const express = require('express');
 const multer = require('multer');
-const path = require('path');
 const uploadFile = require('cloudku-uploader');
-const fs = require('fs');
-
+const express = require('express');
 const app = express();
 
-// Use memory storage instead of disk storage for serverless environment
+// Set up multer with memory storage
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ storage }).single('file');
 
-// Serve static files
-app.use(express.static('public'));
-
-// Serve the main HTML page
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'index.html'));
-});
-
-// Handle file uploads
-app.post('/upload', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file && !req.body.text) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'No file or text provided' 
-      });
-    }
-
-    let fileBuffer, fileName;
-
-    if (req.file) {
-      // With memory storage, the file is already in buffer
-      fileBuffer = req.file.buffer;
-      fileName = req.file.originalname;
-    } else {
-      // Handle text upload
-      fileBuffer = Buffer.from(req.body.text, 'utf-8');
-      fileName = 'upload.txt';
-    }
-
-    // Upload to CloudKuImages
-    const result = await uploadFile(fileBuffer, fileName);
-
-    if (result?.status === 'success') {
-      res.json({
-        status: 'success',
-        result: result.result,
-        information: result.information || 'https://cloudkuimages.guru/ch'
-      });
-    } else {
-      res.status(500).json({
-        status: 'error',
-        message: 'Upload failed',
-        details: result
-      });
-    }
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Internal server error',
-      details: error.message
-    });
+// Export handler function for Vercel serverless
+module.exports = (req, res) => {
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
-});
+  
+  // Handle only POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ status: 'error', message: 'Method Not Allowed' });
+  }
 
-// Start the server only if running directly (not when imported)
-if (require.main === module) {
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+  // Process the upload
+  upload(req, res, async (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(500).json({ status: 'error', message: err.message });
+    }
+    
+    try {
+      let fileBuffer, fileName;
+
+      if (req.file) {
+        console.log('File upload detected');
+        fileBuffer = req.file.buffer;
+        fileName = req.file.originalname;
+      } else if (req.body && req.body.text) {
+        console.log('Text upload detected');
+        fileBuffer = Buffer.from(req.body.text, 'utf-8');
+        fileName = 'upload.txt';
+      } else {
+        return res.status(400).json({ 
+          status: 'error', 
+          message: 'No file or text provided' 
+        });
+      }
+
+      console.log('Uploading to CloudKuImages...');
+      const result = await uploadFile(fileBuffer, fileName);
+      console.log('Upload result:', JSON.stringify(result));
+
+      if (result?.status === 'success') {
+        return res.json({
+          status: 'success',
+          result: result.result,
+          information: result.information || 'https://cloudkuimages.guru/ch'
+        });
+      } else {
+        return res.status(500).json({
+          status: 'error',
+          message: 'Upload failed',
+          details: result
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Internal server error',
+        details: error.message
+      });
+    }
   });
-}
+};
 
 // Export the Express app for serverless deployment
 module.exports = app;
